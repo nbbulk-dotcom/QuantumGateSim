@@ -101,6 +101,25 @@ const PayloadControls: React.FC = () => {
     }
   }
 
+  const clearPayloadAfterTransfer = () => {
+    setParameters({
+      payloadVolume: 0.0,
+      payloadMass: 0.0,
+      payloadType: 'Gold'
+    })
+    
+    setPayloadAssignment({
+      portal1: null,
+      portal2: null,
+      loadingBay: null
+    })
+  }
+
+  const resetToIdleState = () => {
+    clearPayloadAfterTransfer()
+    console.log('System reset to idle state - all payloads cleared')
+  }
+
   return (
     <div className="space-y-4 mt-4 border-t border-gray-600 pt-4">
       <div className="text-sm text-gray-200 font-semibold mb-3">Payload Configuration</div>
@@ -234,7 +253,7 @@ const PayloadControls: React.FC = () => {
             </div>
             
             {/* Commit Payload Buttons */}
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2 mb-3">
               <button
                 onClick={() => commitPayloadToGate(1)}
                 disabled={!!payloadAssignment.portal1}
@@ -258,6 +277,29 @@ const PayloadControls: React.FC = () => {
               >
                 {payloadAssignment.portal2 ? 'Portal 2 Loaded' : 'Commit to Gate 2'}
               </button>
+            </div>
+            
+            {/* System Reset Controls */}
+            <div className="border-t border-gray-600 pt-3">
+              <div className="text-xs text-white mb-2 font-bold">Post-Transfer Controls</div>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={clearPayloadAfterTransfer}
+                  className="px-3 py-2 rounded text-sm font-medium bg-yellow-600 hover:bg-yellow-700 text-white transition-colors"
+                >
+                  Clear All Payloads
+                </button>
+                
+                <button
+                  onClick={resetToIdleState}
+                  className="px-3 py-2 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors"
+                >
+                  Reset to Idle
+                </button>
+              </div>
+              <div className="text-xs text-gray-400 mt-1">
+                Use after successful transfer to reset system to default state
+              </div>
             </div>
           </div>
         </div>
