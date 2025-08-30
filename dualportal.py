@@ -70,20 +70,40 @@ class DualPortal:
 
     def transfer_payload(self):
         """
-        Attempts a transfer across the bridge. Success/failure is calculated 
-        empirically from bridge strength and portal stabilities.
-        Returns True if transfer succeeds, or False if blocked/unstable.
+        Execute payload transfer across the bridge.
+        Returns transfer success status and details.
+        Automatically clears payloads and resets system after successful transfer.
         """
-        if self.bridge_strength >= 0.98:
-            self.status_log.append("[SUCCESS] Payload transferred—maximum bridge stability.")
-            result = True
-        elif self.bridge_strength >= 0.90:
-            self.status_log.append("[SUCCESS] Payload transferred—acceptable bridge stability.")
-            result = True
+        if self.bridge_strength < 0.5:
+            self.status_log.append(f"TRANSFER FAIL: Bridge strength {self.bridge_strength:.3f} < 0.5 minimum")
+            return {"success": False, "reason": "Insufficient bridge strength"}
+        
+        available_energy = min(self.portal1.energy, self.portal2.energy)
+        self.transfer_energy = available_energy * self.bridge_strength * 0.8  # 80% efficiency
+        
+        transfer_success = self.transfer_energy > 100  # Minimum 100J needed
+        
+        if transfer_success:
+            energy_consumed = self.transfer_energy * 0.1  # 10% energy cost
+            self.portal1.energy = max(0, self.portal1.energy - energy_consumed)
+            self.portal2.energy = max(0, self.portal2.energy - energy_consumed)
+            
+            self.portal1.payload = None
+            self.portal2.payload = None
+            
+            self.bridge_strength = 0.0
+            
+            self.status_log.append(f"TRANSFER SUCCESS: {self.transfer_energy:.1f}J transferred - payloads cleared")
+            return {
+                "success": True, 
+                "energy_transferred": self.transfer_energy,
+                "energy_consumed": energy_consumed,
+                "payloads_cleared": True,
+                "system_reset": True
+            }
         else:
-            self.status_log.append("[FAIL] Payload transfer blocked/unreliable (bridge too weak).")
-            result = False
-        return result
+            self.status_log.append(f"TRANSFER FAIL: Insufficient transfer energy {self.transfer_energy:.1f}J")
+            return {"success": False, "reason": "Insufficient transfer energy"}
 
     def full_status(self):
         """

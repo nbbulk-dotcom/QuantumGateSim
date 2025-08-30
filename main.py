@@ -518,21 +518,115 @@ async def load_payload(request: dict):
                            0.0, None, f"Error loading payload: {e}")
         return {"status": "error", "message": str(e)}
 
+@app.post("/api/reset_system")
+async def reset_system():
+    """Resets entire system to idle state after successful transfer"""
+    try:
+        dual_portal = simulation_state["dual_portal"]
+        if not dual_portal:
+            return {"status": "error", "message": "Simulation not initialized"}
+            
+        dual_portal.portal1.energy = 0
+        dual_portal.portal2.energy = 0
+        dual_portal.bridge_strength = 0.0
+        dual_portal.transfer_energy = 0
+        dual_portal.portal1.safety_status = True
+        dual_portal.portal2.safety_status = True
+        
+        dual_portal.portal1.payload = None
+        dual_portal.portal2.payload = None
+        
+        logger = simulation_state.get("logger")
+        if logger:
+            logger.log_event("System Reset", dual_portal.run_id, dual_portal.portal1, dual_portal.portal2, 0.0, None, "System reset to idle state")
+        
+        return {
+            "success": True,
+            "message": "System reset to idle state - all energy cleared, gates unlocked",
+            "portal1_energy": dual_portal.portal1.energy,
+            "portal2_energy": dual_portal.portal2.energy,
+            "bridge_strength": dual_portal.bridge_strength
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/energy_control")
+async def energy_control(request: dict):
+    """Controls portal energy - increase, decrease, or turn on/off"""
+    try:
+        portal_id = request.get("portal_id", 1)
+        action = request.get("action", "on")
+        amount = request.get("amount", 1000)
+        
+        dual_portal = simulation_state["dual_portal"]
+        if not dual_portal:
+            return {"status": "error", "message": "Simulation not initialized"}
+            
+        portal = dual_portal.portal1 if portal_id == 1 else dual_portal.portal2
+        
+        if action == "on":
+            portal.energy = max(portal.energy, 1000)
+        elif action == "off":
+            portal.energy = 0
+        elif action == "increase":
+            portal.energy = min(portal.energy + amount, 20000)
+        elif action == "decrease":
+            portal.energy = max(portal.energy - amount, 0)
+        else:
+            raise ValueError(f"Invalid action: {action}")
+        
+        dual_portal.form_bridge(t=1.0)
+        
+        return {
+            "success": True,
+            "portal_id": portal_id,
+            "action": action,
+            "new_energy": portal.energy,
+            "bridge_strength": dual_portal.bridge_strength,
+            "message": f"Portal {portal_id} energy {action}: {portal.energy}J"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
+@app.post("/api/unlock_portals")
+async def unlock_portals():
+    """Unlocks all portals and resets to default state"""
+    try:
+        dual_portal = simulation_state["dual_portal"]
+        if not dual_portal:
+            return {"status": "error", "message": "Simulation not initialized"}
+        
+        dual_portal.portal1.safety_status = True
+        dual_portal.portal2.safety_status = True
+        
+        logger = simulation_state.get("logger")
+        if logger:
+            logger.log_event("Portal Unlock", dual_portal.run_id, dual_portal.portal1, dual_portal.portal2, dual_portal.bridge_strength, None, "All portals unlocked")
+        
+        return {
+            "success": True,
+            "message": "All portals unlocked and reset to default state",
+            "portal1_status": "UNLOCKED",
+            "portal2_status": "UNLOCKED"
+        }
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 @app.post("/api/apply_optimal_parameters")
-async def apply_optimal_parameters(
-    frequency1: float = 32.0,
-    frequency2: float = 32.0,
-    energy1: float = 10000.0,
-    energy2: float = 10000.0
-):
+async def apply_optimal_parameters(request: dict):
     """Apply optimal parameters to both portals"""
     dp = simulation_state["dual_portal"]
     if not dp:
         return {"status": "error", "message": "Dual portal not initialized"}
     
     try:
-        dp.portal1.freq = max(14.0, min(40.0, frequency1))
-        dp.portal2.freq = max(14.0, min(40.0, frequency2))
+        frequency1 = request.get("frequency1", 7.83)
+        frequency2 = request.get("frequency2", 7.91)
+        energy1 = request.get("energy1", 10000.0)
+        energy2 = request.get("energy2", 10000.0)
+        
+        dp.portal1.freq = max(7.0, min(8.5, frequency1))
+        dp.portal2.freq = max(7.0, min(8.5, frequency2))
         dp.portal1.energy = max(100.0, min(20000.0, energy1))
         dp.portal2.energy = max(100.0, min(20000.0, energy2))
         
@@ -561,7 +655,7 @@ async def apply_optimal_parameters(
         return {"status": "error", "message": str(e)}
 
 @app.post("/api/parameter_sweep")
-async def parameter_sweep(base_freq: float = 32.0, sweep_range: float = 2.0, steps: int = 10):
+async def parameter_sweep(energy_range: float = 1000, freq_range: float = 0.5):
     """Run parameter sweep optimization for bridge strength"""
     dp = simulation_state["dual_portal"]
     if not dp:
@@ -569,44 +663,61 @@ async def parameter_sweep(base_freq: float = 32.0, sweep_range: float = 2.0, ste
     
     try:
         results = []
-        freq_step = (2 * sweep_range) / steps
+        steps = 10
+        
+        base_freq1 = dp.portal1.freq
+        base_freq2 = dp.portal2.freq
+        base_energy1 = dp.portal1.energy
+        base_energy2 = dp.portal2.energy
         
         for i in range(steps):
-            freq1 = base_freq - sweep_range + (i * freq_step)
-            freq2 = base_freq - sweep_range + (i * freq_step)
-            
-            freq1 = max(30.0, min(35.0, freq1))
-            freq2 = max(30.0, min(35.0, freq2))
-            
-            original_freq1 = dp.portal1.freq
-            original_freq2 = dp.portal2.freq
-            
-            dp.portal1.freq = freq1
-            dp.portal2.freq = freq2
-            
-            dp.portal1.update_energy(dt=1.0)
-            dp.portal2.update_energy(dt=1.0)
-            dp.form_bridge(t=1.0)
-            bridge_strength = dp.bridge_strength
-            
-            results.append({
-                "freq1": freq1,
-                "freq2": freq2,
-                "bridge_strength": bridge_strength,
-                "detune": dp.detune,
-                "step": i
-            })
-            
-            dp.portal1.freq = original_freq1
-            dp.portal2.freq = original_freq2
+            for j in range(steps):
+                freq1 = base_freq1 + (freq_range * (i - steps/2) / steps)
+                freq2 = base_freq2 + (freq_range * (j - steps/2) / steps)
+                energy1 = base_energy1 + (energy_range * (i - steps/2) / steps)
+                energy2 = base_energy2 + (energy_range * (j - steps/2) / steps)
+                
+                freq1 = max(7.0, min(8.5, freq1))
+                freq2 = max(7.0, min(8.5, freq2))
+                energy1 = max(100.0, min(20000.0, energy1))
+                energy2 = max(100.0, min(20000.0, energy2))
+                
+                original_freq1 = dp.portal1.freq
+                original_freq2 = dp.portal2.freq
+                original_energy1 = dp.portal1.energy
+                original_energy2 = dp.portal2.energy
+                
+                dp.portal1.freq = freq1
+                dp.portal2.freq = freq2
+                dp.portal1.energy = energy1
+                dp.portal2.energy = energy2
+                
+                dp.portal1.update_energy(dt=1.0)
+                dp.portal2.update_energy(dt=1.0)
+                dp.form_bridge(t=1.0)
+                bridge_strength = dp.bridge_strength
+                
+                results.append({
+                    "frequency1": freq1,
+                    "frequency2": freq2,
+                    "energy1": energy1,
+                    "energy2": energy2,
+                    "bridge_strength": bridge_strength,
+                    "step": len(results)
+                })
+                
+                dp.portal1.freq = original_freq1
+                dp.portal2.freq = original_freq2
+                dp.portal1.energy = original_energy1
+                dp.portal2.energy = original_energy2
         
         return {
             "status": "success",
             "results": results,
             "best_result": max(results, key=lambda x: x["bridge_strength"]),
             "sweep_parameters": {
-                "base_freq": base_freq,
-                "sweep_range": sweep_range,
+                "energy_range": energy_range,
+                "freq_range": freq_range,
                 "steps": steps
             }
         }
