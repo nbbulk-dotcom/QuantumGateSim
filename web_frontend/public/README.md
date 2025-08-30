@@ -99,7 +99,7 @@ The hardware module provides stub interfaces for:
 
 ## Visualization
 
-- 3D six-sphere portal geometry rendering
+- 3D multi-element portal geometry rendering
 - Real-time bridge formation visualization
 - Parameter sweep result matrices
 - Time-series replay of simulation runs

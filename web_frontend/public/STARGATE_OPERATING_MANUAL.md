@@ -9,10 +9,10 @@ The Stargate Dual Portal Simulation System is a sophisticated physics-based simu
 ## PORTAL CONFIGURATION & PHYSICS
 
 ### Portal Geometry
-Each portal consists of a **six-sphere configuration** arranged in a precise geometric pattern:
-- **Primary Ring**: 4 spheres forming the main portal aperture
-- **Stabilization Spheres**: 2 additional spheres providing field stability
-- **Sphere Positioning**: Mathematically calculated for optimal field coherence
+Each portal consists of a **multi-element configuration** arranged in a precise geometric pattern:
+- **Primary Array**: Multiple elements forming the main portal aperture
+- **Stabilization Elements**: Additional components providing field stability
+- **Element Positioning**: Mathematically calculated for optimal field coherence
 
 ### Core Physics Parameters
 
@@ -45,11 +45,11 @@ Each portal consists of a **six-sphere configuration** arranged in a precise geo
 ### PORTAL STATUS INDICATORS
 
 #### **3D Portal Geometry Display**
-- **Blue Spheres**: Normal operation, energy levels stable
-- **Red Spheres**: Critical energy levels or safety violations
-- **Green Spheres**: Optimal performance range
+- **Blue Elements**: Normal operation, energy levels stable
+- **Red Elements**: Critical energy levels or safety violations
+- **Green Elements**: Optimal performance range
 - **Pulsing Effect**: Indicates active energy flow
-- **Sphere Size**: Proportional to energy output
+- **Element Size**: Proportional to energy output
 
 #### **Frequency Display**
 - **Format**: XX.XX Hz (precision to 0.01 Hz)
@@ -223,8 +223,8 @@ Each portal consists of a **six-sphere configuration** arranged in a precise geo
 
 ### PORTAL GEOMETRY VISUALIZATION
 
-#### **Six-Sphere Configuration**
-- **Sphere Arrangement**: Precise 3D positioning based on field calculations
+#### **Multi-Element Configuration**
+- **Element Arrangement**: Precise 3D positioning based on field calculations
 - **Real-time Rotation**: Continuous animation showing portal structure
 - **Color Dynamics**: 
   - **Base Color**: Blue for normal operation
@@ -242,7 +242,7 @@ Each portal consists of a **six-sphere configuration** arranged in a precise geo
 - **Zoom**: Fixed optimal distance for detail visibility
 
 ### REAL-TIME STATUS UPDATES
-- **Energy Visualization**: Sphere brightness reflects energy levels
+- **Energy Visualization**: Element brightness reflects energy levels
 - **Safety Status**: Color changes indicate safety violations
 - **Field Activity**: Animation speed correlates with portal activity
 

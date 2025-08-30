@@ -61,7 +61,7 @@ Deploy the Dual Portal Stargate Simulation as a fully functional web application
 ### Phase 3: Advanced Visualization (Tasks 7-9)
 **Task 7** (≤5 ACU): 3D portal geometry rendering
 - Implement Three.js 3D portal visualization
-- Create six-sphere configuration display
+- Create multi-element configuration display
 - Add bridge formation animation
 - Test 3D rendering performance
 

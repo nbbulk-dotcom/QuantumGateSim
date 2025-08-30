@@ -4,26 +4,26 @@
 
 ### 3D Portal Geometry Visualization
 
-#### **Six-Sphere Configuration Display**
+#### **Multi-Element Configuration Display**
 **Purpose**: Real-time 3D representation of portal field geometry
 **Technology**: WebGL-based Three.js rendering with physics-accurate positioning
 
-**Sphere Arrangement**:
-- **Primary Ring**: 4 spheres forming the main portal aperture
-  - Position: Arranged in square formation at portal perimeter
+**Element Arrangement**:
+- **Primary Array**: Multiple elements forming the main portal aperture
+  - Position: Arranged in optimized formation at portal perimeter
   - Function: Generate primary quantum field
-- **Stabilization Spheres**: 2 additional spheres for field stability
+- **Stabilization Elements**: Additional components for field stability
   - Position: Above and below portal plane
   - Function: Provide vertical field stabilization
 
 **Color Coding System**:
-- **Blue Spheres**: Normal operation (energy 1,000-15,000 J)
-- **Green Spheres**: Optimal performance (energy 8,000-12,000 J, stability >0.7)
-- **Yellow Spheres**: Warning conditions (approaching limits)
-- **Red Spheres**: Critical status (safety violations, energy >15,000 J)
+- **Blue Elements**: Normal operation (energy 1,000-15,000 J)
+- **Green Elements**: Optimal performance (energy 8,000-12,000 J, stability >0.7)
+- **Yellow Elements**: Warning conditions (approaching limits)
+- **Red Elements**: Critical status (safety violations, energy >15,000 J)
 - **Pulsing Effect**: Indicates active energy flow and field dynamics
 
-**Sphere Size Dynamics**:
+**Element Size Dynamics**:
 - **Base Size**: Proportional to portal energy output
 - **Scaling Formula**: Size = Base_Size × (Energy / 10,000)^0.3
 - **Animation**: Continuous rotation showing 360° portal structure
@@ -246,7 +246,7 @@ Where:
 ### Real-Time Data Integration
 
 #### **Energy Visualization**
-**Sphere Brightness**: Directly proportional to energy level
+**Element Brightness**: Directly proportional to energy level
 **Formula**: Brightness = (Energy / 20000) × 0.8 + 0.2
 **Range**: 20% minimum brightness to 100% maximum
 
