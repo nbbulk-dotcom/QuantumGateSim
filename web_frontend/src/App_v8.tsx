@@ -100,8 +100,9 @@ function App_v8() {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
               <PortalDisplay 
-                portalNumber={1} 
-                portalData={simulationData.portal1}
+                portalNumber={1}
+                title="Portal 1 - Origin Gate"
+                portal={simulationData.portal1}
               />
             </div>
             
@@ -127,8 +128,9 @@ function App_v8() {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-gray-900 border border-gray-700 rounded-lg p-4">
               <PortalDisplay 
-                portalNumber={2} 
-                portalData={simulationData.portal2}
+                portalNumber={2}
+                title="Portal 2 - Destination Gate"
+                portal={simulationData.portal2}
               />
             </div>
             

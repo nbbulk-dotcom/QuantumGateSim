@@ -12,9 +12,14 @@ const OperationsControls: React.FC = () => {
   const [isScanning, setIsScanning] = useState(false)
   const [transportReady, setTransportReady] = useState(false)
   const [stargateStatus, setStargateStatus] = useState({
-    portal1: 'IDLE',
-    portal2: 'IDLE'
+    portal1: 'UNLOCKED',
+    portal2: 'UNLOCKED'
   })
+  const [sweepApprovalStatus, setSweepApprovalStatus] = useState<{
+    approved: boolean;
+    criteria: string;
+    report: string;
+  } | null>(null)
 
   const handleParameterChange = (param: string, value: number) => {
     setParameters(prev => ({
@@ -33,6 +38,8 @@ const OperationsControls: React.FC = () => {
       const data = await response.json()
       setSweepResults(data.results || [])
       console.log('Parameter sweep results:', data)
+      
+      setTimeout(() => evaluateSweepResults(), 100)
     } catch (error) {
       console.error('Error running parameter sweep:', error)
     } finally {
@@ -40,7 +47,29 @@ const OperationsControls: React.FC = () => {
     }
   }
 
+  const evaluateSweepResults = () => {
+    if (sweepResults.length === 0) return
+    
+    const optimal = sweepResults.reduce((best, current) => 
+      current.bridge_strength > best.bridge_strength ? current : best
+    )
+    
+    const avgStrength = sweepResults.reduce((sum, r) => sum + r.bridge_strength, 0) / sweepResults.length
+    const minAcceptableStrength = 0.5
+    
+    const approved = optimal.bridge_strength >= minAcceptableStrength
+    const criteria = `Bridge strength ≥ ${minAcceptableStrength} (Optimal: ${optimal.bridge_strength.toFixed(3)})`
+    const report = `Sweep evaluated ${sweepResults.length} configurations. Average strength: ${avgStrength.toFixed(3)}. ${approved ? 'APPROVED' : 'REJECTED'} based on safety criteria.`
+    
+    setSweepApprovalStatus({ approved, criteria, report })
+  }
+
   const applyOptimalParameters = async () => {
+    if (!sweepApprovalStatus?.approved) {
+      alert('Cannot apply parameters - sweep results not approved')
+      return
+    }
+    
     try {
       const optimal = sweepResults.reduce((best, current) => 
         current.bridge_strength > best.bridge_strength ? current : best
@@ -66,18 +95,46 @@ const OperationsControls: React.FC = () => {
     }
   }
 
+  const unlockAllPortals = () => {
+    setStargateStatus({
+      portal1: 'UNLOCKED',
+      portal2: 'UNLOCKED'
+    })
+    setTransportReady(false)
+    console.log('All portals unlocked - system reset to default state')
+  }
+
   const scanStargateContents = async (portalId: number) => {
     setIsScanning(true)
     try {
       const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080'
+      const controller = new AbortController()
+      const timeoutId = setTimeout(() => controller.abort(), 10000)
+      
       const response = await fetch(`${backendUrl}/api/scan_portal?portal_id=${portalId}`, {
-        method: 'POST'
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        signal: controller.signal
       })
+      
+      clearTimeout(timeoutId)
+      
+      if (!response.ok) {
+        throw new Error(`Scan failed with status: ${response.status}`)
+      }
+      
       const data = await response.json()
       setScanResults(data)
       console.log(`Portal ${portalId} scan results:`, data)
     } catch (error) {
       console.error(`Error scanning portal ${portalId}:`, error)
+      setScanResults({
+        error: `Scan failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        portal_id: portalId,
+        timestamp: new Date().toISOString()
+      })
     } finally {
       setIsScanning(false)
     }
@@ -144,9 +201,9 @@ const OperationsControls: React.FC = () => {
             
             <button
               onClick={applyOptimalParameters}
-              disabled={sweepResults.length === 0}
+              disabled={!sweepApprovalStatus?.approved}
               className={`flex-1 px-3 py-2 rounded text-sm font-medium transition-colors ${
-                sweepResults.length === 0
+                !sweepApprovalStatus?.approved
                   ? 'bg-gray-800 cursor-not-allowed text-gray-400'
                   : 'bg-green-600 hover:bg-green-700 text-white'
               }`}
@@ -188,14 +245,25 @@ const OperationsControls: React.FC = () => {
           </div>
           
           {scanResults && (
-            <div className="bg-gray-700 border border-gray-400 rounded p-2">
-              <div className="text-xs text-white mb-1 font-semibold">Last Scan Results:</div>
-              <div className="text-sm text-cyan-100 font-mono font-bold">
-                {scanResults.contents || 'Portal Empty'}
+            <div className={`border rounded p-2 ${
+              scanResults.error ? 'bg-red-800 border-red-400' : 'bg-gray-700 border-gray-400'
+            }`}>
+              <div className="text-xs text-white mb-1 font-semibold">
+                {scanResults.error ? 'Scan Error:' : 'Last Scan Results:'}
+              </div>
+              <div className={`text-sm font-mono font-bold ${
+                scanResults.error ? 'text-red-100' : 'text-cyan-100'
+              }`}>
+                {scanResults.error || scanResults.contents || 'Portal Empty'}
               </div>
               {scanResults.required_params && (
                 <div className="text-xs text-yellow-200 mt-1 font-semibold">
                   Required: {scanResults.required_params}
+                </div>
+              )}
+              {scanResults.timestamp && (
+                <div className="text-xs text-gray-400 mt-1">
+                  {new Date(scanResults.timestamp).toLocaleTimeString()}
                 </div>
               )}
             </div>
@@ -253,6 +321,19 @@ const OperationsControls: React.FC = () => {
                 <div className="text-xs text-green-100">Bridge formation can now be activated</div>
               </div>
             )}
+            
+            {/* System Reset Controls */}
+            <div className="border-t border-gray-600 pt-3 mt-3">
+              <button
+                onClick={unlockAllPortals}
+                className="w-full px-3 py-2 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white transition-colors"
+              >
+                Unlock All Portals & Reset to Idle
+              </button>
+              <div className="text-xs text-gray-400 mt-1 text-center">
+                Use after successful transfer to return gates to default unlocked state
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -265,6 +346,28 @@ const OperationsControls: React.FC = () => {
             <div className="text-xs text-white font-semibold">
               Best Bridge Strength: {Math.max(...sweepResults.map(r => r.bridge_strength)).toFixed(3)}
             </div>
+            
+            {/* Approval Status */}
+            {sweepApprovalStatus && (
+              <div className={`p-2 rounded border ${
+                sweepApprovalStatus.approved 
+                  ? 'bg-green-800 border-green-400' 
+                  : 'bg-red-800 border-red-400'
+              }`}>
+                <div className={`text-xs font-bold ${
+                  sweepApprovalStatus.approved ? 'text-green-100' : 'text-red-100'
+                }`}>
+                  {sweepApprovalStatus.approved ? '✅ SWEEP APPROVED' : '❌ SWEEP REJECTED'}
+                </div>
+                <div className="text-xs text-gray-200 mt-1">
+                  Criteria: {sweepApprovalStatus.criteria}
+                </div>
+                <div className="text-xs text-gray-300 mt-1">
+                  Report: {sweepApprovalStatus.report}
+                </div>
+              </div>
+            )}
+            
             <div className="grid grid-cols-5 gap-1">
               {sweepResults.slice(0, 10).map((result, index) => (
                 <div
