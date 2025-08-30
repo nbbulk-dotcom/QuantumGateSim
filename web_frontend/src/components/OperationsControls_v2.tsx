@@ -283,7 +283,9 @@ const OperationsControls_v2: React.FC = () => {
               </div>
               {scanResults.required_params && (
                 <div className="text-xs text-yellow-200 mt-1 font-semibold">
-                  Required: {scanResults.required_params}
+                  Required: {typeof scanResults.required_params === 'object' 
+                    ? JSON.stringify(scanResults.required_params) 
+                    : scanResults.required_params}
                 </div>
               )}
               {scanResults.timestamp && (
